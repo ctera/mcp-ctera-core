@@ -1,2 +1,2 @@
 # mcp-server-ctera
-A CTERA Model Context Protocol Server
+Interact with the CTERA's Intelligent Data Services Platform through AI.
