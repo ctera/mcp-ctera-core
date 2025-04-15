@@ -21,7 +21,7 @@ To run this server, ensure you have the [MCP runtime](https://modelcontextprotoc
 
 ## 🧩 MCP Server Configuration
 
-Example configuration snippet for `mcp.json`:
+Example configuration snippet for `claude_desktop_config.json`:
 
 ```json
 {
