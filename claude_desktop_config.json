@@ -1,0 +1,18 @@
+{
+    "mcpServers": {
+      "ctera": {
+        "command": "uv",
+        "args": [
+          "--directory",
+          "/mnt/mcp-server-ctera/src",
+          "run",
+          "mcp_ctera.py"
+        ],
+        "env": {
+          "CTERA_ADDR": "portal.ctera.com",
+          "CTERA_USER": "username",
+          "CTERA_PASS": "password"
+        }
+      }
+    }
+  }

@@ -1,0 +1,11 @@
+[project]
+name = "mcp-server-ctera"
+version = "0.1.0"
+description = "Interact with the CTERA's Intelligent Data Services Platform through AI."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cterasdk>=2.19.58",
+    "httpx>=0.28.1",
+    "mcp[cli]>=1.6.0",
+]
