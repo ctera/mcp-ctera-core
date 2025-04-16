@@ -67,7 +67,7 @@ async def ctera_who_am_i(ctx: Context) -> str:
 
 
 @mcp.tool()
-async def ctera_listdir(path: str, search_criteria: str = None, ctx: Context = None) -> list[str]:
+async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = None) -> list[str]:
     """
     List the contents of a specified directory.
 
