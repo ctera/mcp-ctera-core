@@ -1,5 +1,6 @@
 import os
 import logging
+import datetime
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import AsyncIterator
@@ -17,7 +18,8 @@ from cterasdk.core.files.common import (
     get_create_dir_param,
     ActionResourcesParam,
     SrcDstParam,
-    Path
+    Path,
+    CreateShareParam
 )
 
 from cterasdk.common import (
@@ -335,6 +337,44 @@ async def ctera_list_file_versions(ctx: Context, file_path: str):
     
     # Execute the list snapshots operation
     result = await user.v1.api.execute('', 'listSnapshots', target_path.fullpath())
+    
+    return result
+
+@mcp.tool()
+async def ctera_create_public_link(ctx: Context, path: str, access: str = 'ReadOnly', expire_in: int = 30) -> dict:
+    """
+    Create a public link to a file or folder.
+
+    Args:
+        ctx: Request context
+        path: Path of the file or folder to create a link for (without leading slash)
+        access: Access policy of the link, defaults to 'ReadOnly'
+        expire_in: Number of days until the link expires, defaults to 30
+
+    Returns:
+        dict: Information about the created public link
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Remove leading slash if present
+    path = path.lstrip('/')
+    
+    # Create Path object for the target
+    target_path = Path(path, "/ServicesPortal/webdav")
+    
+    # Calculate expiration date as a datetime object
+    expiration_date = datetime.datetime.now() + datetime.timedelta(days=expire_in)
+    expiration_str = expiration_date.strftime("%Y-%m-%d")
+    
+    # Use CreateShareParam builder to create parameters
+    param = CreateShareParam.instance(
+        path=target_path.fullpath(),
+        access=access,
+        expire_on=expiration_str
+    )
+    
+    # Execute the create public link operation
+    result = await user.v1.api.execute('', 'createShare', param)
     
     return result
 
