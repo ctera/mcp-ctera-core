@@ -113,6 +113,27 @@ async def ctera_create_folder(ctx: Context, folder_name: str, parent_path: str =
     return f"Folder '{folder_name}' created successfully at '{parent_path}'"
 
 @mcp.tool()
+async def ctera_read_file(ctx: Context, file_path: str) -> bytes:
+    """
+    Read a file from CTERA.
+
+    Args:
+        ctx: Request context
+        file_path: Path of the file to read (without leading slash)
+
+    Returns:
+        bytes: The content of the file
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Remove leading slash if present
+    file_path = file_path.lstrip('/')
+    
+    # Download the file using io.webdav.download
+    response = await user.io.webdav.download(file_path)
+    return await response.read()
+
+@mcp.tool()
 async def ctera_move_item(ctx: Context, source_path: str, destination_path: str) -> str:
     """
     Move a file or directory to a new location.
