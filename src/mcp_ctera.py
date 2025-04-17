@@ -292,6 +292,31 @@ async def ctera_recover_item(ctx: Context, path: str) -> str:
     
     return f"Successfully recovered '{path}'"
 
+@mcp.tool()
+async def ctera_list_file_versions(ctx: Context, file_path: str):
+    """
+    List all available versions/snapshots of a file.
+
+    Args:
+        ctx: Request context
+        file_path: Path of the file to list versions for (without leading slash)
+
+    Returns:
+        List of file versions with metadata
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Remove leading slash if present
+    file_path = file_path.lstrip('/')
+    
+    # Create Path object for the file
+    target_path = Path(file_path, "/ServicesPortal/webdav")
+    
+    # Execute the list snapshots operation
+    result = await user.v1.api.execute('', 'listSnapshots', target_path.fullpath())
+    
+    return result
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
