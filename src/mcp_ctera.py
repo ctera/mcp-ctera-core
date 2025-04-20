@@ -1,9 +1,10 @@
 import os
 import logging
 import datetime
+import functools
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import AsyncIterator
+from typing import AsyncIterator, Callable, Any
 
 
 from cterasdk import (
@@ -54,11 +55,57 @@ async def ctera_lifespan(server: FastMCP) -> AsyncIterator[PortalContext]:
         await user.logout()
 
 
+# Session refresh decorator
+def with_session_refresh(func: Callable) -> Callable:
+    """
+    Decorator to handle session expiration and automatic refresh.
+    
+    Args:
+        func: The function to wrap with session refresh logic
+        
+    Returns:
+        Wrapped function that handles session refresh
+    """
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        # Extract context from args or kwargs
+        ctx = kwargs.get('ctx')
+        if ctx is None:
+            for arg in args:
+                if isinstance(arg, Context):
+                    ctx = arg
+                    break
+        
+        if ctx is None:
+            raise ValueError("Context not found in function arguments")
+        
+        user = ctx.request_context.lifespan_context.user
+        
+        try:
+            # Try the original function
+            return await func(*args, **kwargs)
+        except Exception as e:
+            # Check if it's a session expired error
+            error_msg = str(e).lower()
+            if "session expired" in error_msg or "session invalid" in error_msg:
+                logger.info("Session expired, refreshing...")
+                # Re-authenticate
+                await user.login(os.environ['CTERA_USER'], os.environ['CTERA_PASS'])
+                # Retry the function
+                return await func(*args, **kwargs)
+            else:
+                # If it's another error, re-raise it
+                raise
+    
+    return wrapper
+
+
 # Initialize FastMCP server
 mcp = FastMCP("CTERA MCP Server", lifespan=ctera_lifespan)
 
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_who_am_i(ctx: Context) -> str:
     """
     Get the current user's information.
@@ -77,6 +124,7 @@ async def ctera_who_am_i(ctx: Context) -> str:
 
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = None) -> list[str]:
     """
     List the contents of a specified directory.
@@ -95,6 +143,7 @@ async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = 
     return [e.name async for e in query.iterator(user, '', builder.build(), 'fetchResources', callback_response=FetchResourcesResponse)]
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_create_folder(ctx: Context, folder_name: str, parent_path: str = "/") -> str:
     """
     Create a new folder at the specified path.
@@ -115,6 +164,7 @@ async def ctera_create_folder(ctx: Context, folder_name: str, parent_path: str =
     return f"Folder '{folder_name}' created successfully at '{parent_path}'"
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_read_file(ctx: Context, file_path: str) -> bytes:
     """
     Read a file from CTERA.
@@ -136,6 +186,7 @@ async def ctera_read_file(ctx: Context, file_path: str) -> bytes:
     return await response.read()
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_move_item(ctx: Context, source_path: str, destination_path: str) -> str:
     """
     Move a file or directory to a new location.
@@ -175,6 +226,7 @@ async def ctera_move_item(ctx: Context, source_path: str, destination_path: str)
     return f"Successfully moved '{source_path}' to '{destination_path}'"
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_copy_item(ctx: Context, source_path: str, destination_path: str) -> str:
     """
     Copy a file or directory to a new location.
@@ -214,6 +266,7 @@ async def ctera_copy_item(ctx: Context, source_path: str, destination_path: str)
     return f"Successfully copied '{source_path}' to '{destination_path}'"
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_delete_item(ctx: Context, path: str) -> str:
     """
     Delete a file or directory.
@@ -246,6 +299,7 @@ async def ctera_delete_item(ctx: Context, path: str) -> str:
     return f"Successfully deleted '{path}'"
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_rename_item(ctx: Context, path: str, new_name: str) -> str:
     """
     Rename a file or directory.
@@ -284,6 +338,7 @@ async def ctera_rename_item(ctx: Context, path: str, new_name: str) -> str:
     return f"Successfully renamed '{path}' to '{new_name}'"
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_recover_item(ctx: Context, path: str) -> str:
     """
     Recover a deleted file or directory.
@@ -316,6 +371,7 @@ async def ctera_recover_item(ctx: Context, path: str) -> str:
     return f"Successfully recovered '{path}'"
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_list_file_versions(ctx: Context, file_path: str):
     """
     List all available versions/snapshots of a file.
@@ -341,6 +397,7 @@ async def ctera_list_file_versions(ctx: Context, file_path: str):
     return result
 
 @mcp.tool()
+@with_session_refresh
 async def ctera_create_public_link(ctx: Context, path: str, access: str = 'ReadOnly', expire_in: int = 30) -> dict:
     """
     Create a public link to a file or folder.
