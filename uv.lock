@@ -304,7 +304,7 @@ wheels = [
 
 [[package]]
 name = "cterasdk"
-version = "2.19.58"
+version = "2.19.59"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -315,9 +315,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "setuptools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b8/16/de1299f9e04c6ad3450f22c94cfd6e670f887e78611f569feef92fb057be/cterasdk-2.19.58.tar.gz", hash = "sha256:2eeb0df78bc9cc4b257e4a414f157e4e38370912cd448b88a9155455b3e664bd", size = 148845 }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/f0/efdea592936b4df8567fc09438c189a273014f6e6c8f418aa8349db64cd6/cterasdk-2.19.59.tar.gz", hash = "sha256:9d439fc76f2fe0d381b038be92ef519819fd1357f6aa31115bda54e644fa9fe6", size = 148939 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/5c/6877ff357a3da34d030ddc4123142f8b689d75bda8fc722f728d8f5b99c0/cterasdk-2.19.58-py3-none-any.whl", hash = "sha256:4e7f21c7b87f8313a745687af0078c3f24d6e2dd5b7b995e2869de8a456085ee", size = 199862 },
+    { url = "https://files.pythonhosted.org/packages/48/50/992ebcfe601c74c9b0cf3ce98851496782c88ca5b38c6c9daa49fed95dbe/cterasdk-2.19.59-py3-none-any.whl", hash = "sha256:4b9741ffb2ef3b9d025a15ef3beefea2bbdf6904ae7794079dbb4613e1530f69", size = 199883 },
 ]
 
 [[package]]
@@ -478,7 +478,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cterasdk", specifier = ">=2.19.58" },
+    { name = "cterasdk", specifier = ">=2.19.59" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.6.0" },
 ]
