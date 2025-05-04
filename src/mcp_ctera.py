@@ -2,6 +2,7 @@ import os
 import logging
 import datetime
 import functools
+import cterasdk.settings
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import AsyncIterator, Callable, Any
@@ -12,10 +13,8 @@ from cterasdk import (
 )
 
 
-from cterasdk.core.files.common import (
+from cterasdk.objects import (
     get_object_path,
-    FetchResourcesParamBuilder,
-    FetchResourcesResponse,
     get_create_dir_param,
     ActionResourcesParam,
     SrcDstParam,
@@ -47,6 +46,8 @@ class PortalContext:
 
 @asynccontextmanager
 async def ctera_lifespan(server: FastMCP) -> AsyncIterator[PortalContext]:
+    # Configure SSL settings for untrusted/self-signed certificates
+    cterasdk.settings.sessions.management.ssl = False    
     user = AsyncServicesPortal(os.environ['CTERA_ADDR'])
     try:
         await user.login(os.environ['CTERA_USER'], os.environ['CTERA_PASS'])
@@ -131,16 +132,20 @@ async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = 
 
     Args:
         path (str): The path to the directory to list.
+        search_criteria (str, optional): Search criteria to filter results.
 
     Returns:
         List[str]: A list of file and subdirectory names within the specified directory.
     """
     user = ctx.request_context.lifespan_context.user
-    builder = FetchResourcesParamBuilder().root(get_object_path('/ServicesPortal/webdav', path).encoded_fullpath()).depth(1)
+    
+    files_iterator = await user.files.listdir(path)
+    
+    # Filter by search criteria if provided
     if search_criteria:
-        builder.searchCriteria(search_criteria)
-
-    return [e.name async for e in query.iterator(user, '', builder.build(), 'fetchResources', callback_response=FetchResourcesResponse)]
+        return [file.name async for file in files_iterator if search_criteria in file.name]
+    
+    return [file.name async for file in files_iterator]
 
 @mcp.tool()
 @with_session_refresh
