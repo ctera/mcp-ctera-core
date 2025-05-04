@@ -304,6 +304,26 @@ async def ctera_create_public_link(path: str, access: str = 'RO', expire_in: int
     return public_link
 
 
+@mcp.tool()
+@with_session_refresh
+async def ctera_get_permalink(path: str, ctx: Context = None) -> str:
+    """
+    Get a permanent link to a file or folder.
+
+    Args:
+        path (str): The path of the file or folder to get a permalink for.
+        ctx: Request context
+
+    Returns:
+        str: Permalink to the file or folder
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    permalink = await user.files.permalink(path)
+    
+    return permalink
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
