@@ -1,7 +1,7 @@
 import os
 import logging
-import datetime
 import functools
+import cterasdk.settings
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import AsyncIterator, Callable, Any
@@ -9,18 +9,6 @@ from typing import AsyncIterator, Callable, Any
 
 from cterasdk import (
     AsyncServicesPortal
-)
-
-
-from cterasdk.core.files.common import (
-    get_object_path,
-    FetchResourcesParamBuilder,
-    FetchResourcesResponse,
-    get_create_dir_param,
-    ActionResourcesParam,
-    SrcDstParam,
-    Path,
-    CreateShareParam
 )
 
 from cterasdk.common import (
@@ -47,6 +35,8 @@ class PortalContext:
 
 @asynccontextmanager
 async def ctera_lifespan(server: FastMCP) -> AsyncIterator[PortalContext]:
+    # Configure SSL settings for untrusted/self-signed certificates
+    cterasdk.settings.sessions.management.ssl = False    
     user = AsyncServicesPortal(os.environ['CTERA_ADDR'])
     try:
         await user.login(os.environ['CTERA_USER'], os.environ['CTERA_PASS'])
@@ -131,309 +121,279 @@ async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = 
 
     Args:
         path (str): The path to the directory to list.
+        search_criteria (str, optional): Search criteria to filter results.
 
     Returns:
         List[str]: A list of file and subdirectory names within the specified directory.
     """
     user = ctx.request_context.lifespan_context.user
-    builder = FetchResourcesParamBuilder().root(get_object_path('/ServicesPortal/webdav', path).encoded_fullpath()).depth(1)
+    
+    files_iterator = await user.files.listdir(path)
+    
+    # Filter by search criteria if provided
     if search_criteria:
-        builder.searchCriteria(search_criteria)
+        return [file.name async for file in files_iterator if search_criteria in file.name]
+    
+    return [file.name async for file in files_iterator]
 
-    return [e.name async for e in query.iterator(user, '', builder.build(), 'fetchResources', callback_response=FetchResourcesResponse)]
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_create_folder(ctx: Context, folder_name: str, parent_path: str = "/") -> str:
+async def ctera_create_directory(path: str, ctx: Context = None) -> str:
     """
-    Create a new folder at the specified path.
+    Create a new directory at the specified path.
 
     Args:
+        path (str): The path where the directory should be created.
         ctx: Request context
-        folder_name: Name of the folder to create
-        parent_path: Path where the folder should be created (default: "/")
-
-    Returns:
-        str: Success message
-    """
-    user = ctx.request_context.lifespan_context.user
-    full_path = get_object_path('/ServicesPortal/webdav', parent_path)
-    param = get_create_dir_param(folder_name, full_path.encoded_fullpath())
-    
-    await user.v1.api.execute('', 'makeCollection', param)
-    return f"Folder '{folder_name}' created successfully at '{parent_path}'"
-
-@mcp.tool()
-@with_session_refresh
-async def ctera_read_file(ctx: Context, file_path: str) -> bytes:
-    """
-    Read a file from CTERA.
-
-    Args:
-        ctx: Request context
-        file_path: Path of the file to read (without leading slash)
-
-    Returns:
-        bytes: The content of the file
-    """
-    user = ctx.request_context.lifespan_context.user
-    
-    # Remove leading slash if present
-    file_path = file_path.lstrip('/')
-    
-    # Download the file using io.webdav.download
-    response = await user.io.webdav.download(file_path)
-    return await response.read()
-
-@mcp.tool()
-@with_session_refresh
-async def ctera_move_item(ctx: Context, source_path: str, destination_path: str) -> str:
-    """
-    Move a file or directory to a new location.
-
-    Args:
-        ctx: Request context
-        source_path: Path of the file or directory to move (without leading slash)
-        destination_path: Destination directory path (without leading slash)
 
     Returns:
         str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slashes if present
-    source_path = source_path.lstrip('/')
-    destination_path = destination_path.lstrip('/')
+    await user.files.mkdir(path)
     
-    # Create Path objects for source and destination
-    # The second parameter is the base path ('/ServicesPortal/webdav')
-    src_path = Path(source_path, "/ServicesPortal/webdav")
-    dst_path = Path(destination_path, "/ServicesPortal/webdav")
-    
-    # Create action parameters
-    param = ActionResourcesParam.instance()
-    
-    # The destination should be the destination directory path + the source filename
-    # Using joinpath to properly handle this
-    param.add(SrcDstParam.instance(
-        src=src_path.fullpath(),
-        dest=dst_path.joinpath(src_path.name()).fullpath()
-    ))
-    
-    # Execute the move operation
-    await user.v1.api.execute('', 'moveResources', param)
-    
-    return f"Successfully moved '{source_path}' to '{destination_path}'"
+    return f"Directory created successfully at path: {path}"
+
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_copy_item(ctx: Context, source_path: str, destination_path: str) -> str:
+async def ctera_copy_item(source_path: str, destination_path: str, ctx: Context = None) -> str:
     """
-    Copy a file or directory to a new location.
+    Copy a file or folder to a destination path.
 
     Args:
+        source_path (str): The path of the file or folder to copy.
+        destination_path (str): The destination path where the item should be copied to.
         ctx: Request context
-        source_path: Path of the file or directory to copy (without leading slash)
-        destination_path: Destination directory path (without leading slash)
 
     Returns:
         str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slashes if present
-    source_path = source_path.lstrip('/')
-    destination_path = destination_path.lstrip('/')
+    await user.files.copy(source_path, destination=destination_path)
     
-    # Create Path objects for source and destination
-    # The second parameter is the base path ('/ServicesPortal/webdav')
-    src_path = Path(source_path, "/ServicesPortal/webdav")
-    dst_path = Path(destination_path, "/ServicesPortal/webdav")
-    
-    # Create action parameters
-    param = ActionResourcesParam.instance()
-    
-    # The destination should be the destination directory path + the source filename
-    # Using joinpath to properly handle this
-    param.add(SrcDstParam.instance(
-        src=src_path.fullpath(),
-        dest=dst_path.joinpath(src_path.name()).fullpath()
-    ))
-    
-    # Execute the copy operation
-    await user.v1.api.execute('', 'copyResources', param)
-    
-    return f"Successfully copied '{source_path}' to '{destination_path}'"
+    return f"Successfully copied {source_path} to {destination_path}"
+
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_delete_item(ctx: Context, path: str) -> str:
+async def ctera_move_item(source_path: str, destination_path: str, ctx: Context = None) -> str:
     """
-    Delete a file or directory.
+    Move a file or folder to a destination path.
 
     Args:
+        source_path (str): The path of the file or folder to move.
+        destination_path (str): The destination path where the item should be moved to.
         ctx: Request context
-        path: Path of the file or directory to delete (without leading slash)
 
     Returns:
         str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slash if present
-    path = path.lstrip('/')
+    await user.files.move(source_path, destination=destination_path)
     
-    # Create Path object for the target
-    # The second parameter is the base path ('/ServicesPortal/webdav')
-    target_path = Path(path, "/ServicesPortal/webdav")
-    
-    # Create action parameters
-    param = ActionResourcesParam.instance()
-    
-    # Add the path to delete
-    param.add(SrcDstParam.instance(src=target_path.fullpath()))
-    
-    # Execute the delete operation
-    await user.v1.api.execute('', 'deleteResources', param)
-    
-    return f"Successfully deleted '{path}'"
+    return f"Successfully moved {source_path} to {destination_path}"
+
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_rename_item(ctx: Context, path: str, new_name: str) -> str:
+async def ctera_rename_item(path: str, new_name: str, ctx: Context = None) -> str:
     """
-    Rename a file or directory.
+    Rename a file or folder.
 
     Args:
+        path (str): The path of the file or folder to rename.
+        new_name (str): The new name for the file or folder (not full path).
         ctx: Request context
-        path: Path of the file or directory to rename (without leading slash)
-        new_name: New name for the file or directory (without path)
 
     Returns:
         str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slash if present
-    path = path.lstrip('/')
+    await user.files.rename(path, new_name)
     
-    # Create Path object for the source
-    src_path = Path(path, "/ServicesPortal/webdav")
-    
-    # Get the parent directory of the source
-    parent_path = src_path.parent()
-    
-    # Create action parameters
-    param = ActionResourcesParam.instance()
-    
-    # The destination is the parent directory plus the new name
-    param.add(SrcDstParam.instance(
-        src=src_path.fullpath(),
-        dest=parent_path.joinpath(new_name).fullpath()
-    ))
-    
-    # Execute the rename operation (uses moveResources)
-    await user.v1.api.execute('', 'moveResources', param)
-    
-    return f"Successfully renamed '{path}' to '{new_name}'"
+    return f"Successfully renamed {path} to {new_name}"
+
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_recover_item(ctx: Context, path: str) -> str:
+async def ctera_delete_item(path: str, ctx: Context = None) -> str:
     """
-    Recover a deleted file or directory.
+    Delete a file or folder.
 
     Args:
+        path (str): The path of the file or folder to delete.
         ctx: Request context
-        path: Path of the file or directory to recover (without leading slash)
 
     Returns:
         str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slash if present
-    path = path.lstrip('/')
+    await user.files.delete(path)
     
-    # Create Path object for the target
-    # The second parameter is the base path ('/ServicesPortal/webdav')
-    target_path = Path(path, "/ServicesPortal/webdav")
-    
-    # Create action parameters
-    param = ActionResourcesParam.instance()
-    
-    # Add the path to recover
-    param.add(SrcDstParam.instance(src=target_path.fullpath()))
-    
-    # Execute the recover operation
-    await user.v1.api.execute('', 'restoreResources', param)
-    
-    return f"Successfully recovered '{path}'"
+    return f"Successfully deleted {path}"
+
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_list_file_versions(ctx: Context, file_path: str):
+async def ctera_recover_item(path: str, ctx: Context = None) -> str:
     """
-    List all available versions/snapshots of a file.
+    Recover a deleted file or folder.
 
     Args:
+        path (str): The path of the file or folder to recover.
         ctx: Request context
-        file_path: Path of the file to list versions for (without leading slash)
 
     Returns:
-        List of file versions with metadata
+        str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slash if present
-    file_path = file_path.lstrip('/')
+    await user.files.undelete(path)
     
-    # Create Path object for the file
-    target_path = Path(file_path, "/ServicesPortal/webdav")
-    
-    # Execute the list snapshots operation
-    result = await user.v1.api.execute('', 'listSnapshots', target_path.fullpath())
-    
-    return result
+    return f"Successfully recovered {path}"
+
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_create_public_link(ctx: Context, path: str, access: str = 'ReadOnly', expire_in: int = 30) -> dict:
+async def ctera_list_versions(path: str, ctx: Context = None) -> list:
+    """
+    List all available versions of a file.
+
+    Args:
+        path (str): The path of the file to list versions for.
+        ctx: Request context
+
+    Returns:
+        list: List of timestamps for each version and their URLs
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    versions = await user.files.versions(path)
+    
+    # Extract the startTimestamp from each version
+    return [version.startTimestamp for version in versions]
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_create_public_link(path: str, access: str = 'RO', expire_in: int = 30, ctx: Context = None) -> dict:
     """
     Create a public link to a file or folder.
 
     Args:
+        path (str): The path of the file or folder to create a link for.
+        access (str, optional): Access policy of the link, defaults to 'RO' (read-only).
+                               Use 'RW' for read-write access.
+        expire_in (int, optional): Number of days until the link expires, defaults to 30.
         ctx: Request context
-        path: Path of the file or folder to create a link for (without leading slash)
-        access: Access policy of the link, defaults to 'ReadOnly'
-        expire_in: Number of days until the link expires, defaults to 30
 
     Returns:
         dict: Information about the created public link
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Remove leading slash if present
-    path = path.lstrip('/')
+    public_link = await user.files.public_link(path, access=access, expire_in=expire_in)
     
-    # Create Path object for the target
-    target_path = Path(path, "/ServicesPortal/webdav")
+    return public_link
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_get_permalink(path: str, ctx: Context = None) -> str:
+    """
+    Get a permanent link to a file or folder.
+
+    Args:
+        path (str): The path of the file or folder to get a permalink for.
+        ctx: Request context
+
+    Returns:
+        str: Permalink to the file or folder
+    """
+    user = ctx.request_context.lifespan_context.user
     
-    # Calculate expiration date as a datetime object
-    expiration_date = datetime.datetime.now() + datetime.timedelta(days=expire_in)
-    expiration_str = expiration_date.strftime("%Y-%m-%d")
+    permalink = await user.files.permalink(path)
     
-    # Use CreateShareParam builder to create parameters
-    param = CreateShareParam.instance(
-        path=target_path.fullpath(),
-        access=access,
-        expire_on=expiration_str
-    )
+    return permalink
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_read_file(path: str, ctx: Context = None) -> str:
+    """
+    Read the content of a text file.
+
+    Args:
+        path (str): The path of the text file to read.
+        ctx: Request context
+
+    Returns:
+        str: Text content of the file
+    """
+    user = ctx.request_context.lifespan_context.user
     
-    # Execute the create public link operation
-    result = await user.v1.api.execute('', 'createShare', param)
+    # Get file handle and read text content
+    handle = await user.files.handle(path)
+    text_content = await handle.text()
     
-    return result
+    return text_content
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_upload_file(local_path: str, destination_path: str, ctx: Context = None) -> str:
+    """
+    Upload a file to CTERA.
+
+    Args:
+        local_path (str): The local path of the file to upload.
+        destination_path (str): The destination path where the file should be uploaded.
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Upload the file
+    await user.files.upload_file(local_path, destination_path)
+    
+    return f"Successfully uploaded {local_path} to {destination_path}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
+    """
+    Recursively list all files and folders in a directory tree.
+
+    Args:
+        path (str): The path of the directory to walk.
+        ctx: Request context
+
+    Returns:
+        list: List of dictionaries with 'name' and 'href' for each file/folder
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    folder_tree = await user.files.walk(path)
+    
+    results = []
+    async for file in folder_tree:
+        results.append({
+            'name': file.name,
+            'href': file.href
+        })
+    
+    return results
+
 
 if __name__ == "__main__":
     # Initialize and run the server
