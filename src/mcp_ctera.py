@@ -6,22 +6,11 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import AsyncIterator, Callable, Any
 
-
 from cterasdk import (
     AsyncServicesPortal
 )
 
-from cterasdk.common import (
-    Object
-)
-
-from cterasdk.asynchronous.core import (
-    query
-)
-
-
 from mcp.server.fastmcp import Context, FastMCP
-
 
 logging.getLogger('cterasdk.core').disabled = True
 logger = logging.getLogger(__name__)
