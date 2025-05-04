@@ -368,6 +368,33 @@ async def ctera_upload_file(local_path: str, destination_path: str, ctx: Context
     return f"Successfully uploaded {local_path} to {destination_path}"
 
 
+@mcp.tool()
+@with_session_refresh
+async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
+    """
+    Recursively list all files and folders in a directory tree.
+
+    Args:
+        path (str): The path of the directory to walk.
+        ctx: Request context
+
+    Returns:
+        list: List of dictionaries with 'name' and 'href' for each file/folder
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    folder_tree = await user.files.walk(path)
+    
+    results = []
+    async for file in folder_tree:
+        results.append({
+            'name': file.name,
+            'href': file.href
+        })
+    
+    return results
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
