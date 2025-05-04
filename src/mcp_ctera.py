@@ -281,6 +281,29 @@ async def ctera_list_versions(path: str, ctx: Context = None) -> list:
     return [version.startTimestamp for version in versions]
 
 
+@mcp.tool()
+@with_session_refresh
+async def ctera_create_public_link(path: str, access: str = 'RO', expire_in: int = 30, ctx: Context = None) -> dict:
+    """
+    Create a public link to a file or folder.
+
+    Args:
+        path (str): The path of the file or folder to create a link for.
+        access (str, optional): Access policy of the link, defaults to 'RO' (read-only).
+                               Use 'RW' for read-write access.
+        expire_in (int, optional): Number of days until the link expires, defaults to 30.
+        ctx: Request context
+
+    Returns:
+        dict: Information about the created public link
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    public_link = await user.files.public_link(path, access=access, expire_in=expire_in)
+    
+    return public_link
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
