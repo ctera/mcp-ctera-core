@@ -157,6 +157,130 @@ async def ctera_create_directory(path: str, ctx: Context = None) -> str:
     return f"Directory created successfully at path: {path}"
 
 
+@mcp.tool()
+@with_session_refresh
+async def ctera_copy_item(source_path: str, destination_path: str, ctx: Context = None) -> str:
+    """
+    Copy a file or folder to a destination path.
+
+    Args:
+        source_path (str): The path of the file or folder to copy.
+        destination_path (str): The destination path where the item should be copied to.
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    await user.files.copy(source_path, destination=destination_path)
+    
+    return f"Successfully copied {source_path} to {destination_path}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_move_item(source_path: str, destination_path: str, ctx: Context = None) -> str:
+    """
+    Move a file or folder to a destination path.
+
+    Args:
+        source_path (str): The path of the file or folder to move.
+        destination_path (str): The destination path where the item should be moved to.
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    await user.files.move(source_path, destination=destination_path)
+    
+    return f"Successfully moved {source_path} to {destination_path}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_rename_item(path: str, new_name: str, ctx: Context = None) -> str:
+    """
+    Rename a file or folder.
+
+    Args:
+        path (str): The path of the file or folder to rename.
+        new_name (str): The new name for the file or folder (not full path).
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    await user.files.rename(path, new_name)
+    
+    return f"Successfully renamed {path} to {new_name}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_delete_item(path: str, ctx: Context = None) -> str:
+    """
+    Delete a file or folder.
+
+    Args:
+        path (str): The path of the file or folder to delete.
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    await user.files.delete(path)
+    
+    return f"Successfully deleted {path}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_recover_item(path: str, ctx: Context = None) -> str:
+    """
+    Recover a deleted file or folder.
+
+    Args:
+        path (str): The path of the file or folder to recover.
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    await user.files.undelete(path)
+    
+    return f"Successfully recovered {path}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_list_versions(path: str, ctx: Context = None) -> list:
+    """
+    List all available versions of a file.
+
+    Args:
+        path (str): The path of the file to list versions for.
+        ctx: Request context
+
+    Returns:
+        list: List of timestamps for each version and their URLs
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    versions = await user.files.versions(path)
+    
+    # Extract the startTimestamp from each version
+    return [version.startTimestamp for version in versions]
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
