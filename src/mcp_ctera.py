@@ -346,6 +346,28 @@ async def ctera_read_file(path: str, ctx: Context = None) -> str:
     return text_content
 
 
+@mcp.tool()
+@with_session_refresh
+async def ctera_upload_file(local_path: str, destination_path: str, ctx: Context = None) -> str:
+    """
+    Upload a file to CTERA.
+
+    Args:
+        local_path (str): The local path of the file to upload.
+        destination_path (str): The destination path where the file should be uploaded.
+        ctx: Request context
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Upload the file
+    await user.files.upload_file(local_path, destination_path)
+    
+    return f"Successfully uploaded {local_path} to {destination_path}"
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
