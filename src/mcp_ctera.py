@@ -324,6 +324,28 @@ async def ctera_get_permalink(path: str, ctx: Context = None) -> str:
     return permalink
 
 
+@mcp.tool()
+@with_session_refresh
+async def ctera_read_file(path: str, ctx: Context = None) -> str:
+    """
+    Read the content of a text file.
+
+    Args:
+        path (str): The path of the text file to read.
+        ctx: Request context
+
+    Returns:
+        str: Text content of the file
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Get file handle and read text content
+    handle = await user.files.handle(path)
+    text_content = await handle.text()
+    
+    return text_content
+
+
 if __name__ == "__main__":
     # Initialize and run the server
     mcp.run(transport='stdio')
