@@ -231,6 +231,32 @@ async def ctera_delete_item(path: str, ctx: Context = None) -> str:
 
 @mcp.tool()
 @with_session_refresh
+async def ctera_delete_items(paths: list[str], ctx: Context = None) -> str:
+    """
+    Delete multiple files or folders at once.
+
+    Args:
+        paths (list[str]): A list of paths to files or folders to delete.
+        ctx: Request context
+
+    Examples:
+        # Delete multiple files
+        ctera_delete_items(['My Files/newfolder/index2.html', '/My Files/newfolder/sub1/sub2/index.html'])
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Convert the list to a tuple of path arguments
+    await user.files.delete(*paths)
+    
+    paths_str = ", ".join(paths)
+    return f"Successfully deleted multiple items: {paths_str}"
+
+
+@mcp.tool()
+@with_session_refresh
 async def ctera_recover_item(path: str, ctx: Context = None) -> str:
     """
     Recover a deleted file or folder.
@@ -247,6 +273,32 @@ async def ctera_recover_item(path: str, ctx: Context = None) -> str:
     await user.files.undelete(path)
     
     return f"Successfully recovered {path}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_recover_items(paths: list[str], ctx: Context = None) -> str:
+    """
+    Recover multiple deleted files or folders at once.
+
+    Args:
+        paths (list[str]): A list of paths to files or folders to recover.
+        ctx: Request context
+
+    Examples:
+        # Recover multiple files
+        ctera_recover_items(['My Files/newfolder/index2.html', '/My Files/newfolder/sub1/sub2/index.html'])
+
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Convert the list to a tuple of path arguments
+    await user.files.undelete(*paths)
+    
+    paths_str = ", ".join(paths)
+    return f"Successfully recovered multiple items: {paths_str}"
 
 
 @mcp.tool()
@@ -337,24 +389,64 @@ async def ctera_read_file(path: str, ctx: Context = None) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_upload_file(local_path: str, destination_path: str, ctx: Context = None) -> str:
+async def ctera_upload_file(local_file_path: str, target_directory: str, ctx: Context = None) -> str:
     """
     Upload a file to CTERA.
 
     Args:
-        local_path (str): The local path of the file to upload.
-        destination_path (str): The destination path where the file should be uploaded.
+        local_file_path (str): The full path to the local file to upload (e.g., '/path/to/myfile.txt')
+        target_directory (str): The CTERA directory where the file should be uploaded (e.g., 'My Files/Documents/')
+                               The directory must end with a trailing slash.
         ctx: Request context
+
+    Examples:
+        # Upload a local file to the root of My Files
+        ctera_upload_file('/home/user/document.pdf', 'My Files/')
+        
+        # Upload to a subdirectory
+        ctera_upload_file('/home/user/picture.jpg', 'My Files/Photos/')
 
     Returns:
         str: Success message
     """
     user = ctx.request_context.lifespan_context.user
     
-    # Upload the file
-    await user.files.upload_file(local_path, destination_path)
+    # Ensure target_directory ends with a trailing slash
+    if not target_directory.endswith('/'):
+        target_directory += '/'
     
-    return f"Successfully uploaded {local_path} to {destination_path}"
+    # Upload the file
+    await user.files.upload_file(local_file_path, destination=target_directory)
+    
+    return f"Successfully uploaded {local_file_path} to {target_directory}"
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_makedirs(path: str, ctx: Context = None) -> str:
+    """
+    Create directories recursively, creating parent directories as needed.
+    
+    This function will create all directories in the path that don't exist,
+    similar to os.makedirs() in Python.
+    
+    Args:
+        path (str): The full directory path to create (e.g., 'My Files/folder1/folder2/folder3').
+        ctx: Request context
+        
+    Examples:
+        # Create a nested directory structure
+        ctera_makedirs('My Files/newfolder/sub1/sub2/sub3')
+        
+    Returns:
+        str: Success message
+    """
+    user = ctx.request_context.lifespan_context.user
+    
+    # Use the built-in makedirs method from the SDK
+    await user.files.makedirs(path)
+    
+    return f"Successfully created directory structure: {path}"
 
 
 @mcp.tool()
