@@ -114,7 +114,7 @@ async def ctera_list_dir(path: str, search_criteria: str = None, include_deleted
         include_deleted (bool, optional): Include deleted files in the results. Defaults to False.
 
     Returns:
-        List[dict]: A list of dictionaries containing file information with 'name', 'lastmodified', 'isDeleted', and 'isFolder' keys.
+        List[dict]: A list of dictionaries containing file information with 'name', 'lastmodified', 'isDeleted', 'isFolder', and 'fileId' keys.
     """
     user = ctx.request_context.lifespan_context.user
     
@@ -125,9 +125,21 @@ async def ctera_list_dir(path: str, search_criteria: str = None, include_deleted
     
     # Filter by search criteria if provided
     if search_criteria:
-        return [{"name": file.name, "lastmodified": file.lastmodified, "isDeleted": file.isDeleted, "isFolder": file.isFolder} async for file in files_iterator if search_criteria in file.name]
+        return [{
+            "name": file.name, 
+            "lastmodified": file.lastmodified, 
+            "isDeleted": file.isDeleted, 
+            "isFolder": file.isFolder,
+            "fileId": getattr(file, 'fileId', None)  # Use None if fileId doesn't exist
+        } async for file in files_iterator if search_criteria in file.name]
     
-    return [{"name": file.name, "lastmodified": file.lastmodified, "isDeleted": file.isDeleted, "isFolder": file.isFolder} async for file in files_iterator]
+    return [{
+        "name": file.name, 
+        "lastmodified": file.lastmodified, 
+        "isDeleted": file.isDeleted, 
+        "isFolder": file.isFolder,
+        "fileId": getattr(file, 'fileId', None)  # Use None if fileId doesn't exist
+    } async for file in files_iterator]
 
 
 @mcp.tool()
@@ -455,12 +467,13 @@ async def ctera_makedirs(path: str, ctx: Context = None) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
+async def ctera_walk_tree(path: str, include_deleted: bool = False, ctx: Context = None) -> list:
     """
     Recursively list all files and folders in a directory tree.
 
     Args:
         path (str): The path of the directory to walk.
+        include_deleted (bool, optional): Include deleted files in the results. Defaults to False.
         ctx: Request context
 
     Returns:
@@ -468,7 +481,7 @@ async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
     """
     user = ctx.request_context.lifespan_context.user
     
-    folder_tree = await user.files.walk(path)
+    folder_tree = await user.files.walk(path, include_deleted=include_deleted)
     
     results = []
     async for file in folder_tree:
@@ -478,6 +491,7 @@ async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
             'lastmodified': file.lastmodified,
             'isFolder': file.isFolder,
             'isDeleted': file.isDeleted,
+            'fileId': getattr(file, 'fileId', None)  # Use None if fileId doesn't exist
         })
     
     return results
