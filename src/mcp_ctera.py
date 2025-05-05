@@ -104,7 +104,7 @@ async def ctera_who_am_i(ctx: Context) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = None) -> list[str]:
+async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = None) -> list[dict]:
     """
     List the contents of a specified directory.
 
@@ -113,7 +113,7 @@ async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = 
         search_criteria (str, optional): Search criteria to filter results.
 
     Returns:
-        List[str]: A list of file and subdirectory names within the specified directory.
+        List[dict]: A list of dictionaries containing file information with 'name' and 'lastmodified' keys.
     """
     user = ctx.request_context.lifespan_context.user
     
@@ -121,9 +121,9 @@ async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = 
     
     # Filter by search criteria if provided
     if search_criteria:
-        return [file.name async for file in files_iterator if search_criteria in file.name]
+        return [{"name": file.name, "lastmodified": file.lastmodified} async for file in files_iterator if search_criteria in file.name]
     
-    return [file.name async for file in files_iterator]
+    return [{"name": file.name, "lastmodified": file.lastmodified} async for file in files_iterator]
 
 
 @mcp.tool()
@@ -470,7 +470,8 @@ async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
     async for file in folder_tree:
         results.append({
             'name': file.name,
-            'href': file.href
+            'href': file.href,
+            'lastmodified': file.lastmodified
         })
     
     return results
