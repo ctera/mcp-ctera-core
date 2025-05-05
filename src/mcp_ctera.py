@@ -104,26 +104,30 @@ async def ctera_who_am_i(ctx: Context) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_list_dir(path: str, search_criteria: str = None, ctx: Context = None) -> list[dict]:
+async def ctera_list_dir(path: str, search_criteria: str = None, include_deleted: bool = False, ctx: Context = None) -> list[dict]:
     """
     List the contents of a specified directory.
 
     Args:
         path (str): The path to the directory to list.
         search_criteria (str, optional): Search criteria to filter results.
+        include_deleted (bool, optional): Include deleted files in the results. Defaults to False.
 
     Returns:
-        List[dict]: A list of dictionaries containing file information with 'name' and 'lastmodified' keys.
+        List[dict]: A list of dictionaries containing file information with 'name', 'lastmodified', 'isDeleted', and 'isFolder' keys.
     """
     user = ctx.request_context.lifespan_context.user
     
-    files_iterator = await user.files.listdir(path)
+    if include_deleted:
+        files_iterator = await user.files.listdir(path, include_deleted=True)
+    else:
+        files_iterator = await user.files.listdir(path)
     
     # Filter by search criteria if provided
     if search_criteria:
-        return [{"name": file.name, "lastmodified": file.lastmodified} async for file in files_iterator if search_criteria in file.name]
+        return [{"name": file.name, "lastmodified": file.lastmodified, "isDeleted": file.isDeleted, "isFolder": file.isFolder} async for file in files_iterator if search_criteria in file.name]
     
-    return [{"name": file.name, "lastmodified": file.lastmodified} async for file in files_iterator]
+    return [{"name": file.name, "lastmodified": file.lastmodified, "isDeleted": file.isDeleted, "isFolder": file.isFolder} async for file in files_iterator]
 
 
 @mcp.tool()
@@ -471,7 +475,9 @@ async def ctera_walk_tree(path: str, ctx: Context = None) -> list:
         results.append({
             'name': file.name,
             'href': file.href,
-            'lastmodified': file.lastmodified
+            'lastmodified': file.lastmodified,
+            'isFolder': file.isFolder,
+            'isDeleted': file.isDeleted,
         })
     
     return results
