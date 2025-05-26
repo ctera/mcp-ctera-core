@@ -21,24 +21,51 @@ To run this server, ensure you have the [MCP runtime](https://modelcontextprotoc
 
 ## 🧩 MCP Server Configuration
 
-Example configuration snippet for `claude_desktop_config.json`:
+Configuration using Standard I/O:
+
+```json
+{
+    "mcpServers": {
+      "ctera-core-mcp-server-stdio": {
+        "command": "uv",
+        "args": [
+          "--directory",
+          "C:\\Users\\saimon\\Desktop\\dev\\mcp-ctera-core\\src",
+          "run",
+          "stdio.py"
+        ],
+        "env": {
+          "ctera.mcp.core.settings.scope": "user",
+          "ctera.mcp.core.settings.host": "your.ctera.portal.domain",
+          "ctera.mcp.core.settings.user": "your-username",
+          "ctera.mcp.core.settings.password": "your-password"
+        }
+      }
+    }
+  }
+```
+
+Configuration using SSE:
+
+```base
+export ctera.mcp.core.settings.scope="user"
+export ctera.mcp.core.settings.host="your.ctera.portal.domain"
+export ctera.mcp.core.settings.user="your-username"
+export ctera.mcp.core.settings.password="your-password"
+```
+
+```powershell
+$env:ctera.mcp.core.settings.scope = "user"
+$env:ctera.mcp.core.settings.host = "your.ctera.portal.domain"
+$env:ctera.mcp.core.settings.user = "your-username"
+$env:ctera.mcp.core.settings.password = "your-password"
+
 
 ```json
 {
   "mcpServers": {
-    "ctera": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/mnt/mcp-server-ctera/src",
-        "run",
-        "mcp_ctera.py"
-      ],
-      "env": {
-        "CTERA_ADDR": "portal.ctera.com",
-        "CTERA_USER": "username",
-        "CTERA_PASS": "password"
-      }
+    "ctera-core-mcp-server-sse": {
+      "url": "http://localhost:8000/sse"
     }
   }
 }
