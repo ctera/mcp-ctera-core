@@ -1,6 +1,6 @@
 # MCP Server for CTERA Portal
 
-**mcp-server-ctera** provides an AI-powered interface to interact with the CTERA Intelligent Data Services Platform, using Model Context Protocol (MCP). This integration enables access to the file management APIs of CTERA Portal, allowing you to perform operations through natural language or automation workflows.
+**mcp-ctera-core** provides an AI-powered interface to interact with the CTERA Intelligent Data Services Platform, using Model Context Protocol (MCP). This integration enables access to the file management APIs of CTERA Portal, allowing you to perform operations through natural language or automation workflows.
 
 ---
 
