@@ -126,8 +126,11 @@ def with_session_refresh(function: Callable) -> Callable:
     """
     @functools.wraps(function)
     async def wrapper(*args, **kwargs):
-        # Find context in kwargs or args
-        ctx = kwargs.get('ctx') or next((arg for arg in args if hasattr(arg, 'request_context')), None)
+        # Find context - check kwargs first, then args
+        ctx = kwargs.get('ctx')
+        if not ctx and args:
+            ctx = next((arg for arg in args if hasattr(arg, 'request_context')), None)
+        
         if not ctx:
             raise ValueError("Context not found in function arguments")
         
@@ -135,18 +138,13 @@ def with_session_refresh(function: Callable) -> Callable:
         
         try:
             return await function(*args, **kwargs)
+        except SessionExpired:
+            logger.info("Session expired, refreshing...")
+            await portal_context.login()  # Re-authenticate with stored credentials
+            return await function(*args, **kwargs)  # Retry
         except Exception as e:
-            # Check if it's a session/auth error
-            error_str = str(e).lower()
-            is_auth_error = (isinstance(e, SessionExpired) or 
-                           any(term in error_str for term in ['session', 'unauthorized', 'authentication', '401']))
-            
-            if is_auth_error:
-                logger.info(f"Session expired, refreshing... ({e})")
-                await portal_context.login()  # Re-authenticate with stored credentials
-                return await function(*args, **kwargs)  # Retry
-            else:
-                logger.error(f'Error in {function.__name__}: {e}')
-                raise
+            logger.info(f"Exception occurred, attempting session refresh... ({e})")
+            await portal_context.login()  # Re-authenticate with stored credentials
+            return await function(*args, **kwargs)  # Retry
 
     return wrapper
