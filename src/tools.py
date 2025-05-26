@@ -4,6 +4,27 @@ from common import mcp, with_session_refresh
 
 @mcp.tool()
 @with_session_refresh
+async def ctera_portal_browse_team_portal(tenant: str, ctx: Context) -> str:
+    user = ctx.request_context.lifespan_context.session
+    if user.context != 'admin':
+        return 'Context error: you must be a global administrator to browse Team Portal tenants.'
+    if user.session().current_tenant() == tenant:
+        return f'You are already operating within the scope of the "{tenant}" tenant.'
+    await user.portals.browse(tenant)
+    return f'Changed context to the "{tenant}" tenant.'
+
+
+@mcp.tool()
+@with_session_refresh
+async def ctera_portal_browse_global_admin(ctx: Context) -> str:
+    user = ctx.request_context.lifespan_context.session
+    if not user.session().in_tenant_context():
+        return f'You are already operating within the global administration scope.'
+    await user.portals.browse_global_admin()
+
+
+@mcp.tool()
+@with_session_refresh
 async def ctera_portal_who_am_i(ctx: Context) -> str:
     user = ctx.request_context.lifespan_context.session
     session = await user.v1.api.get('/currentSession')
