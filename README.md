@@ -59,7 +59,7 @@ $env:ctera.mcp.core.settings.scope = "user"
 $env:ctera.mcp.core.settings.host = "your.ctera.portal.domain"
 $env:ctera.mcp.core.settings.user = "your-username"
 $env:ctera.mcp.core.settings.password = "your-password"
-
+```
 
 ```json
 {
