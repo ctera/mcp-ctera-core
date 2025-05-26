@@ -13,6 +13,31 @@ logger = logging.getLogger('ctera.mcp.core')
 logger.info("Starting CTERA Portal Model Context Protocol [MCP] Server.")
 
 
+def parse_bool_env(value) -> bool:
+    """
+    Parse boolean value from environment variable.
+    Supports both string and boolean inputs for compatibility with different MCP clients.
+    
+    Args:
+        value: Environment variable value (string, bool, or None)
+        
+    Returns:
+        Boolean value
+    """
+    if value is None:
+        return True  # Default to True for SSL
+    
+    if isinstance(value, bool):
+        return value
+    
+    if isinstance(value, str):
+        # Handle string representations
+        return value.lower() in ('true', '1', 'yes', 'on', 'enabled')
+    
+    # Fallback to bool conversion
+    return bool(value)
+
+
 @dataclass
 class Env:
 
@@ -23,13 +48,16 @@ class Env:
         self.host = host
         self.user = user
         self.password = password
-        self.port = os.environ.get(f'{Env.__namespace__}.port', 443)
-        self.ssl = os.environ.get(f'{Env.__namespace__}.ssl', True)
-        # Check for connector.ssl setting (matches mcp.json configuration)
+        self.port = int(os.environ.get(f'{Env.__namespace__}.port', 443))
+        
+        # Handle SSL configuration with support for both string and boolean values
+        # Check for connector.ssl setting first (matches claude_desktop_config.json)
         connector_ssl = os.environ.get(f'{Env.__namespace__}.connector.ssl', None)
         if connector_ssl is not None:
-            # Convert string 'false'/'true' to boolean
-            self.ssl = connector_ssl.lower() == 'true' if isinstance(connector_ssl, str) else bool(connector_ssl)
+            self.ssl = parse_bool_env(connector_ssl)
+        else:
+            # Fallback to regular ssl setting
+            self.ssl = parse_bool_env(os.environ.get(f'{Env.__namespace__}.ssl', True))
 
     @staticmethod
     def load():
@@ -95,63 +123,30 @@ mcp = FastMCP("ctera-core-mcp-server", lifespan=ctera_lifespan)
 def with_session_refresh(function: Callable) -> Callable:
     """
     Decorator to handle session expiration and automatic refresh.
-
-    Args:
-        function: The function to wrap with session refresh logic
-
-    Returns:
-        Wrapped function that handles session refresh
     """
     @functools.wraps(function)
     async def wrapper(*args, **kwargs):
-        # Extract context from kwargs or args
-        ctx = kwargs.get('ctx')
-        if ctx is None:
-            # Look for Context in args
-            from mcp.server.fastmcp import Context
-            for arg in args:
-                if isinstance(arg, Context):
-                    ctx = arg
-                    break
-        
-        if ctx is None:
+        # Find context in kwargs or args
+        ctx = kwargs.get('ctx') or next((arg for arg in args if hasattr(arg, 'request_context')), None)
+        if not ctx:
             raise ValueError("Context not found in function arguments")
         
-        # Get the portal context which contains the session and credentials
         portal_context = ctx.request_context.lifespan_context
-        if portal_context is None:
-            raise Exception("Portal connection not available. Please check environment variables.")
         
         try:
-            # Try the original function
             return await function(*args, **kwargs)
         except Exception as e:
-            # Check if it's a session expired error (multiple ways to detect)
-            error_msg = str(e).lower()
-            is_session_error = (
-                isinstance(e, SessionExpired) or
-                "session expired" in error_msg or 
-                "session invalid" in error_msg or
-                "unauthorized" in error_msg or
-                "authentication" in error_msg or
-                "401" in error_msg
-            )
+            # Check if it's a session/auth error
+            error_str = str(e).lower()
+            is_auth_error = (isinstance(e, SessionExpired) or 
+                           any(term in error_str for term in ['session', 'unauthorized', 'authentication', '401']))
             
-            if is_session_error:
-                logger.info(f"Session expired or authentication error detected: {e}")
-                logger.info("Attempting to refresh session...")
-                try:
-                    # Re-authenticate using the stored credentials in portal_context
-                    await portal_context.login()
-                    logger.info("Session refreshed successfully, retrying operation...")
-                    # Retry the function
-                    return await function(*args, **kwargs)
-                except Exception as refresh_error:
-                    logger.error(f"Failed to refresh session: {refresh_error}")
-                    raise Exception(f"Session refresh failed: {refresh_error}") from e
+            if is_auth_error:
+                logger.info(f"Session expired, refreshing... ({e})")
+                await portal_context.login()  # Re-authenticate with stored credentials
+                return await function(*args, **kwargs)  # Retry
             else:
-                # If it's another error, log and re-raise it
-                logger.error(f'Uncaught exception in {function.__name__}: {e}')
+                logger.error(f'Error in {function.__name__}: {e}')
                 raise
-    
+
     return wrapper
