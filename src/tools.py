@@ -16,9 +16,7 @@ async def ctera_portal_who_am_i(ctx: Context) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_portal_list_dir(
-    path: str, include_deleted: bool = False, ctx: Context = None
-) -> list[dict]:
+async def ctera_portal_list_dir(path: str, include_deleted: bool = False, ctx: Context = None) -> list[dict]:
     user = ctx.request_context.lifespan_context.session
     iterator = await user.files.listdir(path, include_deleted=include_deleted)
 
