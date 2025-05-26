@@ -146,6 +146,14 @@ async def ctera_portal_get_permalink(path: str, ctx: Context = None) -> str:
 
 @mcp.tool()
 @with_session_refresh
+async def ctera_portal_download_file(path: str, destination: str, ctx: Context = None) -> str:
+    user = ctx.request_context.lifespan_context.session
+    await user.files.download(path, destination=destination)
+    return f"Downloaded: {path} to: {destination}"
+
+
+@mcp.tool()
+@with_session_refresh
 async def ctera_portal_read_file(path: str, ctx: Context = None) -> str:
     user = ctx.request_context.lifespan_context.session
     handle = await user.files.handle(path)
@@ -155,11 +163,9 @@ async def ctera_portal_read_file(path: str, ctx: Context = None) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_portal_upload_file(
-    path: str, destination: str, ctx: Context = None
-) -> str:
+async def ctera_portal_upload_file(path: str, destination: str, ctx: Context = None) -> str:
     user = ctx.request_context.lifespan_context.session
-    await user.files.upload_file(path, destination=destination)
+    await user.files.upload_file(path, destination)
     return f"Uploaded: {path} to: {destination}"
 
 
