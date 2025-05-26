@@ -6,9 +6,7 @@ from common import mcp, with_session_refresh
 @with_session_refresh
 async def ctera_portal_who_am_i(ctx: Context) -> str:
     user = ctx.request_context.lifespan_context.session
-
     session = await user.v1.api.get('/currentSession')
-
     username = session.username
     if session.domain:
         username = f'{username}@{session.domain}'

@@ -38,7 +38,8 @@ Configuration using Standard I/O:
           "ctera.mcp.core.settings.scope": "user",
           "ctera.mcp.core.settings.host": "your.ctera.portal.domain",
           "ctera.mcp.core.settings.user": "your-username",
-          "ctera.mcp.core.settings.password": "your-password"
+          "ctera.mcp.core.settings.password": "your-password",
+          "ctera.mcp.core.settings.ssl": "true"
         }
       }
     }
@@ -52,6 +53,7 @@ export ctera.mcp.core.settings.scope="user"
 export ctera.mcp.core.settings.host="your.ctera.portal.domain"
 export ctera.mcp.core.settings.user="your-username"
 export ctera.mcp.core.settings.password="your-password"
+export ctera.mcp.core.settings.ssl="true"
 ```
 
 ```powershell
@@ -59,6 +61,7 @@ $env:ctera.mcp.core.settings.scope = "user"
 $env:ctera.mcp.core.settings.host = "your.ctera.portal.domain"
 $env:ctera.mcp.core.settings.user = "your-username"
 $env:ctera.mcp.core.settings.password = "your-password"
+$env:ctera.mcp.core.settings.ssl = "true"
 ```
 
 ```json

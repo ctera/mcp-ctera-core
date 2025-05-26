@@ -12,35 +12,35 @@ from cterasdk.exceptions import SessionExpired
 logger = logging.getLogger('ctera.mcp.core')
 logger.info("Starting CTERA Portal Model Context Protocol [MCP] Server.")
 
+logger = logging.getLogger('cterasdk.core').setLevel(logging.DEBUG)
+
 
 @dataclass
 class Env:
 
     __namespace__ = 'ctera.mcp.core.settings'
 
-    def __init__(self, scope, host, user, password):
+    def __init__(self, scope, host, tenant, user, password):
         self.scope = scope
         self.host = host
+        self.tenant = tenant
         self.user = user
         self.password = password
         self.port = os.environ.get(f'{Env.__namespace__}.port', 443)
-        self.ssl = os.environ.get(f'{Env.__namespace__}.ssl', True)
-        # Check for connector.ssl setting (matches mcp.json configuration)
-        connector_ssl = os.environ.get(f'{Env.__namespace__}.connector.ssl', None)
-        if connector_ssl is not None:
-            # Convert string 'false'/'true' to boolean
-            self.ssl = connector_ssl.lower() == 'true' if isinstance(connector_ssl, str) else bool(connector_ssl)
+        ssl = os.environ.get(f'{Env.__namespace__}.ssl', None)
+        self.ssl = False if ssl in ['false', False] else True
 
     @staticmethod
     def load():
         scope = os.environ.get(f'{Env.__namespace__}.scope', None)
         host = os.environ.get(f'{Env.__namespace__}.host', None)
+        tenant = os.environ.get(f'{Env.__namespace__}.tenant', None)
         user = os.environ.get(f'{Env.__namespace__}.user', None)
         password = os.environ.get(f'{Env.__namespace__}.password', None)
-        return Env(scope, host, user, password)
+        return Env(scope, host, tenant, user, password)
 
 
-@dataclass
+@dataclass  
 class PortalContext:
 
     def __init__(self, core, env: Env):

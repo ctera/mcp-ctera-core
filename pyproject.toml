@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "cterasdk>=2.20.5",
+    "cterasdk>=2.20.6",
     "fastapi[standard]>=0.115.12",
     "httpx>=0.28.1",
     "mcp[cli]>=1.9.1",
