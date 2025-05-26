@@ -13,6 +13,31 @@ logger = logging.getLogger('ctera.mcp.core')
 logger.info("Starting CTERA Portal Model Context Protocol [MCP] Server.")
 
 
+def parse_bool_env(value) -> bool:
+    """
+    Parse boolean value from environment variable.
+    Supports both string and boolean inputs for compatibility with different MCP clients.
+    
+    Args:
+        value: Environment variable value (string, bool, or None)
+        
+    Returns:
+        Boolean value
+    """
+    if value is None:
+        return True  # Default to True for SSL
+    
+    if isinstance(value, bool):
+        return value
+    
+    if isinstance(value, str):
+        # Handle string representations
+        return value.lower() in ('true', '1', 'yes', 'on', 'enabled')
+    
+    # Fallback to bool conversion
+    return bool(value)
+
+
 @dataclass
 class Env:
 
@@ -23,13 +48,17 @@ class Env:
         self.host = host
         self.user = user
         self.password = password
-        self.port = os.environ.get(f'{Env.__namespace__}.port', 443)
-        self.ssl = os.environ.get(f'{Env.__namespace__}.ssl', True)
-        # Check for connector.ssl setting (matches mcp.json configuration)
+        self.port = int(os.environ.get(f'{Env.__namespace__}.port', 443))
+        
+        # Handle SSL configuration with support for both string and boolean values
+        # Check for connector.ssl setting first (matches claude_desktop_config.json)
         connector_ssl = os.environ.get(f'{Env.__namespace__}.connector.ssl', None)
         if connector_ssl is not None:
-            # Convert string 'false'/'true' to boolean
-            self.ssl = connector_ssl.lower() == 'true' if isinstance(connector_ssl, str) else bool(connector_ssl)
+            self.ssl = parse_bool_env(connector_ssl)
+        else:
+            # Fallback to regular ssl setting
+            ssl_setting = os.environ.get(f'{Env.__namespace__}.ssl', True)
+            self.ssl = parse_bool_env(ssl_setting)
 
     @staticmethod
     def load():
