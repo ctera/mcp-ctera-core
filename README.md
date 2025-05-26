@@ -30,7 +30,7 @@ Configuration using Standard I/O:
         "command": "uv",
         "args": [
           "--directory",
-          "/path/to/mcp-ctera-core",
+          "/path/to/mcp-ctera-core/src",
           "run",
           "stdio.py"
         ],
