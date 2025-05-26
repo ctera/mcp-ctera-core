@@ -25,6 +25,11 @@ class Env:
         self.password = password
         self.port = os.environ.get(f'{Env.__namespace__}.port', 443)
         self.ssl = os.environ.get(f'{Env.__namespace__}.ssl', True)
+        # Check for connector.ssl setting (matches mcp.json configuration)
+        connector_ssl = os.environ.get(f'{Env.__namespace__}.connector.ssl', None)
+        if connector_ssl is not None:
+            # Convert string 'false'/'true' to boolean
+            self.ssl = connector_ssl.lower() == 'true' if isinstance(connector_ssl, str) else bool(connector_ssl)
 
     @staticmethod
     def load():
