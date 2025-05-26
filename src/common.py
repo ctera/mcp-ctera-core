@@ -20,10 +20,9 @@ class Env:
 
     __namespace__ = 'ctera.mcp.core.settings'
 
-    def __init__(self, scope, host, tenant, user, password):
+    def __init__(self, scope, host, user, password):
         self.scope = scope
         self.host = host
-        self.tenant = tenant
         self.user = user
         self.password = password
         self.port = os.environ.get(f'{Env.__namespace__}.port', 443)
@@ -34,13 +33,12 @@ class Env:
     def load():
         scope = os.environ.get(f'{Env.__namespace__}.scope', None)
         host = os.environ.get(f'{Env.__namespace__}.host', None)
-        tenant = os.environ.get(f'{Env.__namespace__}.tenant', None)
         user = os.environ.get(f'{Env.__namespace__}.user', None)
         password = os.environ.get(f'{Env.__namespace__}.password', None)
-        return Env(scope, host, tenant, user, password)
+        return Env(scope, host, user, password)
 
 
-@dataclass  
+@dataclass
 class PortalContext:
 
     def __init__(self, core, env: Env):
