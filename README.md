@@ -72,3 +72,29 @@ $env:ctera.mcp.core.settings.ssl = "true"
     }
   }
 }
+
+```
+
+---
+
+## 🐳 Docker Deployment
+
+You can also run the MCP server using Docker:
+
+### Build the Docker Image
+
+```bash
+docker build -t mcp-ctera-core .
+```
+
+### Run with Docker
+
+```bash
+docker run -p 8000:8000 \
+  -e ctera.mcp.core.settings.scope=user \
+  -e ctera.mcp.core.settings.host=your.ctera.portal.domain \
+  -e ctera.mcp.core.settings.user=your-username \
+  -e ctera.mcp.core.settings.password=your-password \
+  -e ctera.mcp.core.settings.ssl=true \
+  mcp-ctera-core
+```
