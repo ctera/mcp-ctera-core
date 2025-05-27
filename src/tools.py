@@ -90,9 +90,7 @@ async def ctera_portal_rename_item(
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_portal_delete_items(
-    paths: list[str], ctx: Context = None
-) -> str:
+async def ctera_portal_delete_items(paths: list[str], ctx: Context = None) -> str:
     user = ctx.request_context.lifespan_context.session
     await user.files.delete(*paths)
     return f"Deleted: {list(paths)}"
@@ -100,17 +98,7 @@ async def ctera_portal_delete_items(
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_portal_recover_item(path: str, ctx: Context = None) -> str:
-    user = ctx.request_context.lifespan_context.session
-    await user.files.undelete(path)
-    return f"Recovered: {path}"
-
-
-@mcp.tool()
-@with_session_refresh
-async def ctera_portal_recover_items(
-    paths: list[str], ctx: Context = None
-) -> str:
+async def ctera_portal_recover_items(paths: list[str], ctx: Context = None) -> str:
     user = ctx.request_context.lifespan_context.session
     await user.files.undelete(*paths)
     return f"Recovered: {list(paths)}"
@@ -126,9 +114,7 @@ async def ctera_portal_list_versions(path: str, ctx: Context = None) -> list:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_portal_create_public_link(
-    path: str, access: str = 'RO', expire_in: int = 30, ctx: Context = None
-) -> dict:
+async def ctera_portal_create_public_link(path: str, access: str = 'RO', expire_in: int = 30, ctx: Context = None) -> dict:
     user = ctx.request_context.lifespan_context.session
     public_link = await user.files.public_link(
         path, access=access, expire_in=expire_in
@@ -179,9 +165,7 @@ async def ctera_portal_makedirs(path: str, ctx: Context = None) -> str:
 
 @mcp.tool()
 @with_session_refresh
-async def ctera_portal_walk_tree(
-    path: str, include_deleted: bool = False, ctx: Context = None
-) -> list:
+async def ctera_portal_walk_tree(path: str, include_deleted: bool = False, ctx: Context = None) -> list:
     user = ctx.request_context.lifespan_context.session
     iterator = await user.files.walk(path, include_deleted=include_deleted)
     return [{
