@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+NGROK_SETUP_README.md
+CHATGPT_SETUP_GUIDE.md
+SECURITY_OPTIONS.md
+CHATGPT_USER_FLOW.md

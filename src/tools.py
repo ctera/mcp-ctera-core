@@ -1,5 +1,5 @@
 from mcp.server.fastmcp import Context
-from common import mcp, with_session_refresh
+from .common import mcp, with_session_refresh
 
 
 @mcp.tool()
