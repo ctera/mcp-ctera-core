@@ -25,7 +25,7 @@ class Env:
         self.password = password
         self.port = os.environ.get(f'{Env.__namespace__}.port', 443)
         ssl = os.environ.get(f'{Env.__namespace__}.ssl', None)
-        self.ssl = False if ssl in ['false', False] else True
+        self.ssl = False if ssl in ['false', 'False', False] else True
 
     @staticmethod
     def load():
@@ -105,9 +105,11 @@ def with_session_refresh(function: Callable) -> Callable:
         try:
             return await function(*args, **kwargs)
         except exceptions.session.SessionExpired:
+            logger.info("Session expired, refreshing...")
             await user.login()
             return await function(*args, **kwargs)
         except Exception as e:
             logger.error(f'Uncaught exception: {e}')
+            raise
 
     return wrapper
